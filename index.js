@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config()
+const ObjectId = require('mongodb').ObjectId;
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -16,8 +17,52 @@ async function run() {
   try {
     await client.connect();
     const taskCollection = client.db('google-task').collection('tasks');
-    console.log('mongodb connected')
 
+
+    app.post('/tasks', async (req, res) => {
+      const tasks = req.body;
+      const result = await taskCollection.insertOne(tasks)
+      res.send(result);
+    })
+
+    app.get('/tasks', async (req, res) => {
+      const query = req.query;
+      const cursor = taskCollection.find(query)
+      const result = await cursor.toArray()
+      res.send(result.reverse())
+    })
+
+    app.get('/tasks/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await taskCollection.findOne(query);
+      res.send(result)
+    })
+
+
+    app.put('/tasks/:id', async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+
+
+      const updateDoc = {
+        $set: {
+          tasksText: data.tasksText
+        },
+      };
+
+      const result = await taskCollection.updateOne(filter, updateDoc, options);
+
+
+      res.send(result)
+
+    })
+
+
+
+    console.log('mongodb connected')
   }
   finally {
 
